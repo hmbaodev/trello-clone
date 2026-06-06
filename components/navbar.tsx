@@ -1,0 +1,87 @@
+"use client";
+
+import Image from "next/image";
+import { SignInButton, SignUpButton, useUser, UserButton } from "@clerk/nextjs";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import trelloLogo from "@/assets/trello-logo.svg";
+import { getUsernameFromEmail } from "@/lib/getUsernameFromEmail";
+
+const Navbar = () => {
+  const { isSignedIn, user } = useUser();
+  const pathname = usePathname();
+
+  const isDashboardPage = pathname === "/dashboard";
+  // const isBoardPage = pathname.startsWith("/boards/")
+
+  if (isDashboardPage) {
+    return  <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Image
+            src={trelloLogo}
+            alt="Trello Logo"
+            loading="eager"
+            className="h-6 w-6 sm:h-8 sm:w-8"
+          />
+          <span className="text-xl sm:text-2xl font-bold text-gray-900">
+            Trello
+          </span>
+        </div>
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <UserButton />
+        </div>
+      </div>
+    </header>
+  }
+
+  return (
+    <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Image
+            src={trelloLogo}
+            alt="Trello Logo"
+            loading="eager"
+            className="h-6 w-6 sm:h-8 sm:w-8"
+          />
+          <span className="text-xl sm:text-2xl font-bold text-gray-900">
+            Trello
+          </span>
+        </div>
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {isSignedIn ? (
+            <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-1 sm:space-y-0 sm:space-x-4">
+              <span className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+                Welcome,{" "}
+                {user.firstName ??
+                  getUsernameFromEmail(user.emailAddresses[0].emailAddress)}
+              </span>
+              <Link href="/dashboard">
+                <Button className="text-xs sm:text-sm cursor-pointer">
+                  Go to Dashboard <ArrowRight />
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div>
+              <SignInButton>
+                <Button variant="ghost" className="text-xs sm:text-sm cursor-pointer">
+                  Sign In
+                </Button>
+              </SignInButton>
+              <SignUpButton>
+                <Button className="text-xs sm:text-sm cursor-pointer">Sign Up</Button>
+              </SignUpButton>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;
