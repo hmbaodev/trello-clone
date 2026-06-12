@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
 import {
   Filter,
   Grid3x3,
@@ -18,16 +17,10 @@ import Navbar from "@/components/navbar";
 import { getUsernameFromEmail } from "@/lib/getUsernameFromEmail";
 import { Button } from "@/components/ui/button";
 import { useBoards } from "@/lib/hooks/useBoards";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { VIEW_MODE } from "@/lib/constants";
+import { BoardCard } from "@/components/board-card"; // Import your new component here
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -72,6 +65,7 @@ export default function DashboardPage() {
             Here&apos;s what&apos;s happening with your boards today.
           </p>
         </div>
+        
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card>
@@ -151,7 +145,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Boards */}
+        {/* Boards Section */}
         <div className="mb-6 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
             <div>
@@ -200,96 +194,25 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Boards Grid/List */}
+          {/* Unified Boards List/Grid Layout */}
           {boards.length === 0 ? (
             <div>No boards yet</div>
-          ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {boards.map((board, key) => (
-                <Link href={`/boards/${board.id}`} key={key}>
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className={`w-4 h-4 ${board.color} rounded`} />
-                        <Badge className="text-xs" variant="secondary">
-                          New
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg mb-2 group-hover:text-blue-600 transition-colors">
-                        {board.title}
-                      </CardTitle>
-                      <CardDescription className="text-sm mb-4">
-                        {board.description}
-                      </CardDescription>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 space-y-1 sm:space-y-0">
-                        <span>
-                          Created{" "}
-                          {new Date(board.created_at).toLocaleDateString()}
-                        </span>
-                        <span>
-                          Updated{" "}
-                          {new Date(board.updated_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+          ) : (
+            <div
+              className={
+                viewMode === VIEW_MODE.GRID
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                  : "flex flex-col space-y-4"
+              }
+            >
+              {boards.map((board) => (
+                <BoardCard key={board.id} board={board} />
               ))}
 
+              {/* Reusable "Create new board" Button Card */}
               <Card className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group">
                 <CardContent
-                  className="p-4 sm:p-6 flex flex-col items-center justify-center h-full min-h-50"
-                  onClick={handleCreateBoard}
-                >
-                  <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 group-hover:text-blue-600 mb-2" />
-                  <p className="text-sm sm:text-base text-gray-600 group-hover:text-blue-600 font-medium">
-                    Create new board
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div>
-              {boards.map((board, key) => (
-                <div key={key} className={key > 0 ? "mt-4" : ""}>
-                  <Link href={`/boards/${board.id}`}>
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className={`w-4 h-4 ${board.color} rounded`} />
-                          <Badge className="text-xs" variant="secondary">
-                            New
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 sm:p-6">
-                        <CardTitle className="text-base sm:text-lg mb-2 group-hover:text-blue-600 transition-colors">
-                          {board.title}
-                        </CardTitle>
-                        <CardDescription className="text-sm mb-4">
-                          {board.description}
-                        </CardDescription>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 space-y-1 sm:space-y-0">
-                          <span>
-                            Created{" "}
-                            {new Date(board.created_at).toLocaleDateString()}
-                          </span>
-                          <span>
-                            Updated{" "}
-                            {new Date(board.updated_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </div>
-              ))}
-
-              <Card className="mt-4 border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group">
-                <CardContent
-                  className="p-4 sm:p-6 flex flex-col items-center justify-center h-full min-h-50"
+                  className="p-4 sm:p-6 flex flex-col items-center justify-center h-full min-h-[150px]"
                   onClick={handleCreateBoard}
                 >
                   <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 group-hover:text-blue-600 mb-2" />
