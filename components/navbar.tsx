@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import { SignInButton, SignUpButton, useUser, UserButton } from "@clerk/nextjs";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Trello } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import trelloLogo from "@/assets/trello-logo.svg";
 import { getUsernameFromEmail } from "@/lib/getUsernameFromEmail";
 
 const Navbar = () => {
@@ -21,12 +20,7 @@ const Navbar = () => {
     return  <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Image
-            src={trelloLogo}
-            alt="Trello Logo"
-            loading="eager"
-            className="h-6 w-6 sm:h-8 sm:w-8"
-          />
+          <Trello className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
           <span className="text-xl sm:text-2xl font-bold text-gray-900">
             Trello
           </span>
@@ -42,12 +36,7 @@ const Navbar = () => {
     <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Image
-            src={trelloLogo}
-            alt="Trello Logo"
-            loading="eager"
-            className="h-6 w-6 sm:h-8 sm:w-8"
-          />
+          <Trello className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
           <span className="text-xl sm:text-2xl font-bold text-gray-900">
             Trello
           </span>

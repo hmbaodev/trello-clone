@@ -40,13 +40,7 @@ export default function SupabaseProvider({
 
   return (
     <SupabaseContext.Provider value={{ supabase, isLoaded }}>
-      {!isLoaded ? (
-        <div className="w-screen h-screen flex items-center justify-center">
-          Loading...
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </SupabaseContext.Provider>
   );
 }
