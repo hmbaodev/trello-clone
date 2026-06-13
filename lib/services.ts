@@ -3,6 +3,20 @@ import { Board, Column } from "@/lib/supabase/models";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export const boardService = {
+  async getBoard(supabase: SupabaseClient, boardId: string): Promise<Board> {
+    const { data, error } = await supabase
+      .from(TABLES.BOARDS)
+      .select("*")
+      .eq("id", boardId)
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+
   async getBoards(supabase: SupabaseClient, userId: string): Promise<Board[]> {
     const { data, error } = await supabase
       .from(TABLES.BOARDS)
@@ -33,9 +47,45 @@ export const boardService = {
 
     return data;
   },
+
+  async updateBoard(
+    supabase: SupabaseClient,
+    boardId: string,
+    updates: Partial<Board>,
+  ): Promise<Board> {
+    const { data, error } = await supabase
+      .from(TABLES.BOARDS)
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", boardId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
 };
 
 export const columnService = {
+  async getColumns(
+    supabase: SupabaseClient,
+    boardId: string,
+  ): Promise<Column[]> {
+    const { data, error } = await supabase
+      .from(TABLES.COLUMNS)
+      .select("*")
+      .eq("board_id", boardId)
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data || [];
+  },
+
   async createColumn(
     supabase: SupabaseClient,
     column: Omit<Column, "id" | "created_at">,
@@ -55,6 +105,17 @@ export const columnService = {
 };
 
 export const boardDataService = {
+  async getBoardWithColumns(supabase: SupabaseClient, boardId: string) {
+    const [board, columns] = await Promise.all([
+      boardService.getBoard(supabase, boardId),
+      columnService.getColumns(supabase, boardId),
+    ]);
+
+    if (!board) throw new Error("Board not found");
+
+    return { board, columns };
+  },
+
   async createBoardWithDefaultColumns(
     supabase: SupabaseClient,
     boardData: {

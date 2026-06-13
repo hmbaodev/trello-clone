@@ -1,35 +1,81 @@
 "use client";
 
-import Image from "next/image";
 import { SignInButton, SignUpButton, useUser, UserButton } from "@clerk/nextjs";
-import { ArrowRight, Trello } from "lucide-react";
+import { ArrowLeft, ArrowRight, MoreHorizontal, Trello } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { getUsernameFromEmail } from "@/lib/getUsernameFromEmail";
 
-const Navbar = () => {
+interface NavbarProps {
+  boardTitle?: string;
+  onEditBoard?: () => void;
+}
+
+const Navbar = ({ boardTitle, onEditBoard }: NavbarProps) => {
   const { isSignedIn, user } = useUser();
   const pathname = usePathname();
 
   const isDashboardPage = pathname === "/dashboard";
-  // const isBoardPage = pathname.startsWith("/boards/")
+  const isBoardPage = pathname.startsWith("/boards/");
 
   if (isDashboardPage) {
-    return  <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Trello className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-          <span className="text-xl sm:text-2xl font-bold text-gray-900">
-            Trello
-          </span>
+    return (
+      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Trello className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+            <span className="text-xl sm:text-2xl font-bold text-gray-900">
+              Trello
+            </span>
+          </div>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <UserButton />
+          </div>
         </div>
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <UserButton />
+      </header>
+    );
+  }
+
+  if (isBoardPage) {
+    return (
+      <header className="bg-white border-b sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+              <Link
+                href="/dashboard"
+                className="flex items-center space-x-1 sm:space-x-2 text-gray-600 hover:text-gray-900 shrink-0"
+              >
+                <ArrowLeft className="size-4 sm:size-5" />
+                <span className="hidden sm:inline">Back to dashboard</span>
+                <span className="sm:hidden">Back</span>
+              </Link>
+              <div className="h-4 sm:h-6 w-px bg-gray-300" />
+              <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+                <Trello className="text-blue-600" />
+                <div className="items-center space-x-1 sm:space-x-2 min-w-0">
+                  <span className="text-lg font-bold text-gray-900 truncate">
+                    {boardTitle}
+                  </span>
+                  {onEditBoard && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="size-7 shrink-0 p-0 cursor-pointer"
+                      onClick={onEditBoard}
+                    >
+                      <MoreHorizontal />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    );
   }
 
   return (
@@ -58,12 +104,17 @@ const Navbar = () => {
           ) : (
             <div>
               <SignInButton>
-                <Button variant="ghost" className="text-xs sm:text-sm cursor-pointer">
+                <Button
+                  variant="ghost"
+                  className="text-xs sm:text-sm cursor-pointer"
+                >
                   Sign In
                 </Button>
               </SignInButton>
               <SignUpButton>
-                <Button className="text-xs sm:text-sm cursor-pointer">Sign Up</Button>
+                <Button className="text-xs sm:text-sm cursor-pointer">
+                  Sign Up
+                </Button>
               </SignUpButton>
             </div>
           )}

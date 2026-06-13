@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 
 import { boardDataService, boardService } from "@/lib/services";
-import { Board } from "@/lib/supabase/models";
+import { Board, Column } from "@/lib/supabase/models";
 import { useSupabase } from "../supabase/SupabaseProvider";
 
 export function useBoards() {
@@ -66,4 +66,65 @@ export function useBoards() {
   }
 
   return { boards, loading, error, loadBoards, createBoard };
+}
+
+export function useBoard(boardId: string) {
+  const { supabase } = useSupabase();
+  const [board, setBoard] = useState<Board | null>(null);
+  const [columns, setColumns] = useState<Column[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadBoard() {
+    if (!boardId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await boardDataService.getBoardWithColumns(
+        supabase!,
+        boardId,
+      );
+
+      setBoard(data.board);
+      setColumns(data.columns);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load boards.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function updateBoard(boardId: string, updates: Partial<Board>) {
+    try {
+      const updatedBoard = await boardService.updateBoard(supabase!, boardId, updates)
+      setBoard(updatedBoard)
+      return updatedBoard;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while updating the board.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (boardId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadBoard();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardId, supabase]);
+
+  return {
+    board,
+    columns,
+    loading,
+    error,
+    updateBoard
+  };
 }
