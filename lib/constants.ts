@@ -23,3 +23,9 @@ export const DEFAULT_COLORS = [
   "bg-cyan-500",
   "bg-emerald-500",
 ];
+
+export enum PRIORITY {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+}

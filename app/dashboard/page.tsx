@@ -34,7 +34,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="w-screen h-screen flex items-center justify-center">
-        <Loader2 />
+        <Loader2 className="animate-spin" />
         <span>Loading your boards...</span>
       </div>
     );

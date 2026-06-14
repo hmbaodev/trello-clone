@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { Plus } from "lucide-react";
 
 import Navbar from "@/components/navbar";
 import { useBoard } from "@/lib/hooks/useBoards";
@@ -10,19 +11,30 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { DEFAULT_COLORS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import Column from "@/components/column";
+import { DEFAULT_COLORS, PRIORITY } from "@/lib/constants";
 
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
-  const { board, updateBoard } = useBoard(id);
+  const { board, columns, updateBoard, createRealTask } = useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newColor, setNewColor] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const handleUpdateBoard = async (ev: React.SubmitEvent) => {
     ev.preventDefault();
@@ -38,6 +50,45 @@ export default function BoardPage() {
     } catch {}
   };
 
+  const createTask = async (taskData: {
+    title: string;
+    description?: string;
+    assignee?: string;
+    dueDate?: string;
+    priority?: PRIORITY;
+  }) => {
+    const targetColumn = columns[0];
+    if (!targetColumn) {
+      throw new Error("No column available to create tasks");
+    }
+
+    await createRealTask(targetColumn.id, taskData);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleCreateTask = async (ev: any) => {
+    ev.preventDefault();
+
+    const formData = new FormData(ev.currentTarget);
+    const taskData = {
+      title: formData.get("title") as string,
+      description: (formData.get("description") as string) || undefined,
+      assignee: (formData.get("assignee") as string) || undefined,
+      dueDate: (formData.get("dueDate") as string) || undefined,
+      priority: (formData.get("priority") as PRIORITY) || "medium",
+    };
+
+    if (taskData.title.trim()) {
+      await createTask(taskData);
+
+      // Close the dialog after creating a task (Shadcn UI doesn't close automatically)
+      const trigger = document.querySelector(
+        '[data-state="open"',
+      ) as HTMLElement;
+      if (trigger) trigger.click();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar
@@ -47,7 +98,10 @@ export default function BoardPage() {
           setNewColor(board?.color ?? "");
           setIsEditingTitle(true);
         }}
+        onFilterClick={() => setIsFilterOpen(true)}
+        filterCount={2}
       />
+
       <Dialog open={isEditingTitle} onOpenChange={setIsEditingTitle}>
         <DialogContent className="w-95vw max-w-106.25 mx-auto">
           <DialogHeader>
@@ -92,6 +146,156 @@ export default function BoardPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <DialogContent className="w-95vw max-w-106.25 mx-auto">
+          <DialogHeader>
+            <DialogTitle>Filter Tasks</DialogTitle>
+            <p className="text-sm text-gray-600">
+              Filter tasks by priority, assignee, or due date
+            </p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <div className="flex flex-wrap gap-2">
+                {Object.values(PRIORITY).map((priority) => (
+                  <Button key={priority} size="sm">
+                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {/* <div className="space-y-2">
+              <Label>Assignee</Label>
+
+            </div> */}
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input type="date" />
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="cursor-pointer"
+              >
+                Clear Filters
+              </Button>
+              <Button
+                className="cursor-pointer"
+                onClick={() => setIsFilterOpen(false)}
+              >
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Board Content */}
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        {/* Stats */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Total Tasks: </span>
+              {columns?.reduce((sum, col) => sum + col.tasks.length, 0)}
+            </div>
+          </div>
+
+          {/* Add tag dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="w-full sm:w-auto cursor-pointer">
+                <Plus />
+                Add Tasks
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="w-95vw max-w-106.25 mx-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Task</DialogTitle>
+                <p className="text-sm text-gray-600">
+                  Add a new task to the board
+                </p>
+              </DialogHeader>
+              <form className="space-y-4" onSubmit={handleCreateTask}>
+                <div className="space-y-2">
+                  <Label>Title *</Label>
+                  <Input
+                    id="title"
+                    name="title"
+                    placeholder="Task title"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    placeholder="Task description"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Assignee</Label>
+                  <Input id="assignee" name="assignee" placeholder="Assignee" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Priority</Label>
+                  <Select name="priority" defaultValue={PRIORITY.MEDIUM}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(PRIORITY).map((priority) => (
+                        <SelectItem key={priority} value={priority}>
+                          {priority}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Due Date</Label>
+                  <Input type="date" id="dueDate" name="dueDate" />
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="submit" className="cursor-pointer">
+                    Create Task
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Board Columns */}
+        <div
+          className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto 
+            lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 
+            lg:[&::-webkit-scrollbar-track]:bg-gray-100 
+            lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full 
+            space-y-4 lg:space-y-0"
+        >
+          {columns.map((column) => (
+            <Column
+              key={column.id}
+              column={column}
+              onCreateTask={createTask}
+              onEditColumn={() => {}}
+            >
+              <div>
+                {column.tasks.map((task) => (
+                  <div key={task.id}>{task.title}</div>
+                ))}
+              </div>
+            </Column>
+          ))}
+        </div>
+      </main>
     </div>
   );
 }
