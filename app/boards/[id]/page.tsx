@@ -3,6 +3,21 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  rectIntersection,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 import Navbar from "@/components/navbar";
 import { useBoard } from "@/lib/hooks/useBoards";
@@ -26,16 +41,28 @@ import {
 } from "@/components/ui/select";
 import Column from "@/components/column";
 import Task from "@/components/task";
+import TaskOverlay from "@/components/task-overlay";
 import { DEFAULT_COLORS, PRIORITY } from "@/lib/constants";
+import { ColumnWithTasks } from "@/lib/supabase/models";
 
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
-  const { board, columns, updateBoard, createRealTask } = useBoard(id);
+  const { board, columns, updateBoard, createRealTask, setColumns, moveTask } =
+    useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newColor, setNewColor] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
 
   const handleUpdateBoard = async (ev: React.SubmitEvent) => {
     ev.preventDefault();
@@ -87,6 +114,100 @@ export default function BoardPage() {
         '[data-state="open"',
       ) as HTMLElement;
       if (trigger) trigger.click();
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const taskId = event.active.id as string;
+    const task = columns
+      .flatMap((col) => col.tasks)
+      .find((task) => task.id === taskId);
+
+    if (task) setActiveTask(task);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const sourceColumn = columns.find((col) =>
+      col.tasks.some((task) => task.id === activeId),
+    );
+    const targetColumn = columns.find((col) =>
+      col.tasks.some((task) => task.id === overId),
+    );
+
+    if (!sourceColumn || !targetColumn) return;
+
+    if (sourceColumn.id === targetColumn.id) {
+      const activeIndex = sourceColumn.tasks.findIndex(
+        (task) => task.id === activeId,
+      );
+      const overIndex = targetColumn.tasks.findIndex(
+        (task) => task.id === overId,
+      );
+
+      if (activeIndex !== overIndex) {
+        setColumns((prev: ColumnWithTasks[]) => {
+          const newColumns = [...prev];
+          const column = newColumns.find((col) => col.id === sourceColumn.id);
+
+          if (column) {
+            const tasks = [...column.tasks];
+            const [removed] = tasks.splice(activeIndex, 1);
+            tasks.splice(overIndex, 0, removed);
+            column.tasks = tasks;
+          }
+
+          return newColumns;
+        });
+      }
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const overId = over.id as string;
+
+    const targetColumn = columns.find((col) => col.id === overId);
+    if (targetColumn) {
+      const sourceColumn = columns.find((col) =>
+        col.tasks.some((task) => task.id === taskId),
+      );
+
+      // Move task to another column
+      if (sourceColumn && sourceColumn.id !== targetColumn.id) {
+        await moveTask(taskId, targetColumn.id, targetColumn.tasks.length);
+      }
+    } else {
+      const sourceColumn = columns.find((col) =>
+        col.tasks.some((task) => task.id === taskId),
+      );
+
+      const targetColumn = columns.find((col) =>
+        col.tasks.some((task) => task.id === overId),
+      );
+
+      if (sourceColumn && targetColumn) {
+        const oldIndex = sourceColumn.tasks.findIndex(
+          (task) => task.id === taskId,
+        );
+        const newIndex = targetColumn.tasks.findIndex(
+          (task) => task.id === overId,
+        );
+
+        if (oldIndex !== newIndex) {
+          await moveTask(taskId, targetColumn.id, newIndex);
+        }
+      }
     }
   };
 
@@ -274,28 +395,44 @@ export default function BoardPage() {
         </div>
 
         {/* Board Columns */}
-        <div
-          className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto 
+        <DndContext
+          sensors={sensors}
+          collisionDetection={rectIntersection}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div
+            className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto 
             lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 
             lg:[&::-webkit-scrollbar-track]:bg-gray-100 
             lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full 
             space-y-4 lg:space-y-0"
-        >
-          {columns.map((column) => (
-            <Column
-              key={column.id}
-              column={column}
-              onCreateTask={handleCreateTask}
-              onEditColumn={() => {}}
-            >
-              <div className="space-y-3">
-                {column.tasks.map((task) => (
-                  <Task key={task.id} task={task} />
-                ))}
-              </div>
-            </Column>
-          ))}
-        </div>
+          >
+            {columns.map((column) => (
+              <Column
+                key={column.id}
+                column={column}
+                onCreateTask={handleCreateTask}
+                onEditColumn={() => {}}
+              >
+                <SortableContext
+                  items={column.tasks.map((task) => task.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {column.tasks.map((task) => (
+                      <Task key={task.id} task={task} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </Column>
+            ))}
+            <DragOverlay>
+              {activeTask && <TaskOverlay task={activeTask} />}
+            </DragOverlay>
+          </div>
+        </DndContext>
       </main>
     </div>
   );

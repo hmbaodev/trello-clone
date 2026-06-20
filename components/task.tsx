@@ -1,15 +1,33 @@
-import type { Task } from "@/lib/supabase/models";
-import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, User } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+import type { Task } from "@/lib/supabase/models";
 import { getPriorityColor } from "@/lib/getPriorityColor";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface TaskProps {
   task: Task;
 }
 
 const Task = ({ task }: TaskProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const styles = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <div>
+    <div ref={setNodeRef} style={styles} {...listeners} {...attributes}>
       <Card className="cursor-pointer hover:shadow-md transition-shadow">
         <CardContent className="p-3 sm:p-4">
           <div className="space-y-2 sm:space-y-3">

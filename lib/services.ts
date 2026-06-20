@@ -126,12 +126,33 @@ export const taskService = {
   async createTask(
     supabase: SupabaseClient,
     task: Omit<Task, "id" | "created_at" | "updated_at">,
-  ):Promise<Task> {
+  ): Promise<Task> {
     const { data, error } = await supabase
       .from(TABLES.TASKS)
       .insert(task)
       .select()
       .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+
+  async moveTask(
+    supabase: SupabaseClient,
+    taskId: string,
+    newColumnId: string,
+    newOrder: number,
+  ) {
+    const { data, error } = await supabase
+      .from(TABLES.TASKS)
+      .update({
+        column_id: newColumnId,
+        sort_order: newOrder,
+      })
+      .eq("id", taskId);
 
     if (error) {
       throw new Error(error.message);

@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 
 import { boardDataService, boardService, taskService } from "@/lib/services";
-import { Board, ColumnWithTasks } from "@/lib/supabase/models";
+import { Board, ColumnWithTasks, Task } from "@/lib/supabase/models";
 import { useSupabase } from "../supabase/SupabaseProvider";
 import { PRIORITY } from "../constants";
 
@@ -157,6 +157,43 @@ export function useBoard(boardId: string) {
     }
   }
 
+  async function moveTask(
+    taskId: string,
+    newColumnId: string,
+    newOrder: number,
+  ) {
+    try {
+      await taskService.moveTask(supabase!, taskId, newColumnId, newOrder);
+
+      setColumns((prev) => {
+        const newColumns = [...prev];
+        let taskToMove: Task | null = null;
+        for (const col of newColumns) {
+          const taskIndex = col.tasks.findIndex((task) => task.id === taskId);
+          if (taskIndex !== -1) {
+            taskToMove = col.tasks[taskIndex];
+            col.tasks.splice(taskIndex, 1);
+            break;
+          }
+        }
+        if (taskToMove) {
+          // Add task to new col in UI
+          const targetColumn = newColumns.find((col) => col.id === newColumnId);
+          if (targetColumn) {
+            targetColumn.tasks.splice(newOrder, 0, taskToMove);
+          }
+        }
+        return newColumns;
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while moving the task.",
+      );
+    }
+  }
+
   useEffect(() => {
     if (boardId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -170,7 +207,9 @@ export function useBoard(boardId: string) {
     columns,
     loading,
     error,
+    setColumns,
     updateBoard,
     createRealTask,
+    moveTask,
   };
 }

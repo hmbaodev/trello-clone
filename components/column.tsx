@@ -1,4 +1,5 @@
 import { MoreHorizontal, Plus } from "lucide-react";
+import { useDroppable } from "@dnd-kit/core";
 
 import { ColumnWithTasks } from "@/lib/supabase/models";
 import { Badge } from "@/components/ui/badge";
@@ -35,9 +36,18 @@ const Column = ({
   onCreateTask,
   onEditColumn,
 }: ColumnProps) => {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
   return (
-    <div className="w-full lg:shrink-0 lg:w-80">
-      <div className="bg-white rounded-lg shadow-sm border">
+    <div
+      ref={setNodeRef}
+      className={`w-full lg:shrink-0 lg:w-80 ${
+        isOver ? "bg-blue-50 rounded-lg" : ""
+      }`}
+    >
+      <div
+        className={`bg-white rounded-lg shadow-sm border ${isOver ? "ring-2 ring-blue-300" : ""}`}
+      >
         {/* Column Header */}
         <div className="p-3 sm:p-4 border-b">
           <div className="flex items-center justify-between">
