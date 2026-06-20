@@ -3,7 +3,12 @@
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 
-import { boardDataService, boardService, taskService } from "@/lib/services";
+import {
+  boardDataService,
+  boardService,
+  columnService,
+  taskService,
+} from "@/lib/services";
 import { Board, ColumnWithTasks, Task } from "@/lib/supabase/models";
 import { useSupabase } from "../supabase/SupabaseProvider";
 import { PRIORITY } from "../constants";
@@ -70,6 +75,7 @@ export function useBoards() {
 }
 
 export function useBoard(boardId: string) {
+  const { user } = useUser();
   const { supabase } = useSupabase();
   const [board, setBoard] = useState<Board | null>(null);
   const [columns, setColumns] = useState<ColumnWithTasks[]>([]);
@@ -194,6 +200,53 @@ export function useBoard(boardId: string) {
     }
   }
 
+  async function createColumn(title: string) {
+    if (!board) throw new Error("Board not loaded");
+    if (!user) throw new Error("User not found");
+
+    try {
+      const newColumn = await columnService.createColumn(supabase!, {
+        title,
+        board_id: board.id,
+        sort_order: columns.length,
+        user_id: user.id,
+      });
+
+      setColumns((prev) => [...prev, { ...newColumn, tasks: [] }]);
+      return newColumn;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while creating the board.",
+      );
+    }
+  }
+
+  async function updateColumnTitle(columnId: string, newTitle: string) {
+    try {
+      const updatedColumn = await columnService.updateColumnTitle(
+        supabase!,
+        columnId,
+        newTitle,
+      );
+
+      setColumns((prev) =>
+        prev.map((col) =>
+          col.id === columnId ? { ...col, ...updatedColumn } : col ,
+        ),
+      );
+
+      return updatedColumn
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while updating the column.",
+      );
+    }
+  }
+
   useEffect(() => {
     if (boardId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -211,5 +264,7 @@ export function useBoard(boardId: string) {
     updateBoard,
     createRealTask,
     moveTask,
+    createColumn,
+    updateColumnTitle,
   };
 }

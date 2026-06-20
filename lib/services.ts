@@ -102,6 +102,25 @@ export const columnService = {
 
     return data;
   },
+
+  async updateColumnTitle(
+    supabase: SupabaseClient,
+    columnId: string,
+    newTitle: string,
+  ): Promise<Column> {
+    const { data, error } = await supabase
+      .from(TABLES.COLUMNS)
+      .update({ title: newTitle })
+      .eq("id", columnId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
 };
 
 export const taskService = {

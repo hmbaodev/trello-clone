@@ -63,6 +63,7 @@ const Column = ({
               variant="ghost"
               size="icon"
               className="shrink-0 cursor-pointer"
+              onClick={() => onEditColumn(column)}
             >
               <MoreHorizontal />
             </Button>
