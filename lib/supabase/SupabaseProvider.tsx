@@ -5,12 +5,12 @@ import { useSession } from "@clerk/nextjs";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState } from "react";
 
-type SupabaseContext = {
+type SupabaseContextProps = {
   supabase: SupabaseClient | null;
   isLoaded: boolean;
 };
 
-const SupabaseContext = createContext<SupabaseContext>({
+const SupabaseContext = createContext<SupabaseContextProps>({
   supabase: null,
   isLoaded: false,
 });

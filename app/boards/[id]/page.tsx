@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Column from "@/components/column";
+import Task from "@/components/task";
 import { DEFAULT_COLORS, PRIORITY } from "@/lib/constants";
 
 export default function BoardPage() {
@@ -284,12 +285,12 @@ export default function BoardPage() {
             <Column
               key={column.id}
               column={column}
-              onCreateTask={createTask}
+              onCreateTask={handleCreateTask}
               onEditColumn={() => {}}
             >
-              <div>
+              <div className="space-y-3">
                 {column.tasks.map((task) => (
-                  <div key={task.id}>{task.title}</div>
+                  <Task key={task.id} task={task} />
                 ))}
               </div>
             </Column>
