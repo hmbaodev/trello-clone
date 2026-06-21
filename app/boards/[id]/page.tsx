@@ -55,7 +55,7 @@ export default function BoardPage() {
     setColumns,
     moveTask,
     createColumn,
-    updateColumnTitle
+    updateColumnTitle,
   } = useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -66,8 +66,15 @@ export default function BoardPage() {
   const [isEditingColumn, setIsEditingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [editingColumnTitle, setEditingColumnTitle] = useState("");
-  const [editingColumn, setEditingColumn] = useState<ColumnWithTasks | null>(null);
+  const [editingColumn, setEditingColumn] = useState<ColumnWithTasks | null>(
+    null,
+  );
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [filters, setFilters] = useState({
+    priority: [] as string[],
+    assignee: [] as string[],
+    dueDate: null as string | null,
+  });
 
   // Update document title dynamically in client-side once board is loaded
   useEffect(() => {
@@ -233,7 +240,7 @@ export default function BoardPage() {
     }
   };
 
-  async function handleCreateColumn(ev: React.SubmitEvent) {
+  const handleCreateColumn = async (ev: React.SubmitEvent) => {
     ev.preventDefault();
 
     if (!newColumnTitle.trim()) return;
@@ -242,15 +249,15 @@ export default function BoardPage() {
 
     setNewColumnTitle("");
     setIsCreatingColumn(false);
-  }
+  };
 
-  function handleEditColumn(column: ColumnWithTasks) {
+  const handleEditColumn = (column: ColumnWithTasks) => {
     setIsEditingColumn(true);
     setEditingColumn(column);
     setEditingColumnTitle(column.title);
-  }
+  };
 
-  async function handleUpdateColumn(ev: React.SubmitEvent) {
+  const handleUpdateColumn = async (ev: React.SubmitEvent) => {
     ev.preventDefault();
 
     if (!editingColumnTitle.trim() || !editingColumn) return;
@@ -260,7 +267,48 @@ export default function BoardPage() {
     setEditingColumnTitle("");
     setIsEditingColumn(false);
     setEditingColumn(null);
-  }
+  };
+
+  const handleFilterChange = (
+    type: "priority" | "assignee" | "dueDate",
+    value: string | string[] | null,
+  ) => {
+    setFilters((prev) => ({
+      ...prev,
+      [type]: value,
+    }));
+  };
+
+  const clearFilter = () => {
+    setFilters({
+      priority: [] as string[],
+      assignee: [] as string[],
+      dueDate: null as string | null,
+    });
+  };
+
+  const filteredColumns = columns.map((column) => ({
+    ...column,
+    tasks: column.tasks.filter((task) => {
+      // filter by priority
+      if (
+        filters.priority.length > 0 &&
+        !filters.priority.includes(task.priority)
+      ) {
+        return false;
+      }
+
+      // filter by due date
+      if (filters.dueDate && task.due_date) {
+        const taskDate = new Date(task.due_date).toDateString();
+        const filterDate = new Date(filters.dueDate).toDateString();
+
+        if (taskDate !== filterDate) return false;
+      }
+
+      return true;
+    }),
+  }));
 
   return (
     <>
@@ -273,7 +321,11 @@ export default function BoardPage() {
             setIsEditingTitle(true);
           }}
           onFilterClick={() => setIsFilterOpen(true)}
-          filterCount={2}
+          filterCount={Object.values(filters).reduce(
+            (count, v) =>
+              count + (Array.isArray(v) ? v.length : v !== null ? 1 : 0),
+            0,
+          )}
         />
 
         <Dialog open={isEditingTitle} onOpenChange={setIsEditingTitle}>
@@ -321,6 +373,7 @@ export default function BoardPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Filter Dialog */}
         <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <DialogContent className="w-95vw max-w-106.25 mx-auto">
             <DialogHeader>
@@ -334,19 +387,38 @@ export default function BoardPage() {
                 <Label>Priority</Label>
                 <div className="flex flex-wrap gap-2">
                   {Object.values(PRIORITY).map((priority) => (
-                    <Button key={priority} size="sm">
+                    <Button
+                      key={priority}
+                      size="sm"
+                      onClick={() => {
+                        const newPriorities = filters.priority.includes(
+                          priority,
+                        )
+                          ? filters.priority.filter((p) => p !== priority)
+                          : [...filters.priority, priority];
+                        handleFilterChange("priority", newPriorities);
+                      }}
+                      variant={
+                        filters.priority.includes(priority)
+                          ? "default"
+                          : "outline"
+                      }
+                    >
                       {priority.charAt(0).toUpperCase() + priority.slice(1)}
                     </Button>
                   ))}
                 </div>
               </div>
-              {/* <div className="space-y-2">
-              <Label>Assignee</Label>
 
-            </div> */}
               <div className="space-y-2">
                 <Label>Due Date</Label>
-                <Input type="date" />
+                <Input
+                  type="date"
+                  value={filters.dueDate || ""}
+                  onChange={(ev) =>
+                    handleFilterChange("dueDate", ev.target.value || null)
+                  }
+                />
               </div>
 
               <div className="flex justify-between pt-4">
@@ -354,6 +426,7 @@ export default function BoardPage() {
                   type="button"
                   variant="outline"
                   className="cursor-pointer"
+                  onClick={clearFilter}
                 >
                   Clear Filters
                 </Button>
@@ -465,7 +538,7 @@ export default function BoardPage() {
             lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full 
             space-y-4 lg:space-y-0"
             >
-              {columns.map((column) => (
+              {filteredColumns.map((column) => (
                 <Column
                   key={column.id}
                   column={column}
