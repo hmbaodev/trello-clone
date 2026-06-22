@@ -22,11 +22,11 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${inter.className} h-full antialiased`}>
-        <body className="min-h-full flex flex-col">
-          <SupabaseProvider>{children}</SupabaseProvider>
-        </body>
-      </html>
+      <SupabaseProvider>
+        <html lang="en" className={`${inter.className} h-full antialiased`}>
+          <body className="min-h-full flex flex-col">{children}</body>
+        </html>
+      </SupabaseProvider>
     </ClerkProvider>
   );
 }

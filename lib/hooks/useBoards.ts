@@ -20,12 +20,6 @@ export function useBoards() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) loadBoards();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, supabase]);
-
   async function loadBoards() {
     if (!user) return;
 
@@ -71,7 +65,16 @@ export function useBoards() {
     }
   }
 
-  return { boards, loading, error, loadBoards, createBoard };
+  useEffect(() => {
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadBoards();
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase]);
+
+  return { boards, loading, error, createBoard };
 }
 
 export function useBoard(boardId: string) {
@@ -233,11 +236,11 @@ export function useBoard(boardId: string) {
 
       setColumns((prev) =>
         prev.map((col) =>
-          col.id === columnId ? { ...col, ...updatedColumn } : col ,
+          col.id === columnId ? { ...col, ...updatedColumn } : col,
         ),
       );
 
-      return updatedColumn
+      return updatedColumn;
     } catch (err) {
       setError(
         err instanceof Error
